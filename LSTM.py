@@ -2,73 +2,9 @@ import torch
 from torch import nn
 from d2l import torch as d2l
 from matplotlib import pyplot as plt
-#
-# def get_lstm_params(vocab_size, num_hiddens, device):
-#     num_inputs = num_outputs= vocab_size
-#     def normal(shape):
-#         return torch.randn(size=shape, device=device)*0.01
-#
-#     def three():
-#         return (normal((num_inputs, num_hiddens)),
-#                 normal((num_hiddens, num_hiddens)),
-#                 torch.zeros(num_hiddens, device=device))
-#
-#     W_xi, W_hi, b_i = three()  # 输入门参数
-#     W_xf, W_hf, b_f = three()  # 遗忘门参数
-#     W_xo, W_ho, b_o = three()  # 输出门参数
-#     W_xc, W_hc, b_c = three()  # 候选记忆元参数
-#     # 输出层参数
-#     W_hq = normal((num_hiddens, num_outputs))
-#     b_q = torch.zeros(num_outputs, device=device)
-#     # 附加梯度
-#     params = [W_xi, W_hi, b_i, W_xf, W_hf, b_f, W_xo, W_ho, b_o, W_xc, W_hc,
-#               b_c, W_hq, b_q]
-#     for param in params:
-#         param.requires_grad_(True)
-#     return params
-#
-# def init_lstm_state(batch_size, num_hiddens, device):
-#     return (torch.zeros((batch_size, num_hiddens), device=device),
-#             torch.zeros((batch_size, num_hiddens), device=device))
-# def lstm(inputs, state, params):
-#     [W_xi, W_hi, b_i, W_xf, W_hf, b_f, W_xo, W_ho, b_o, W_xc, W_hc, b_c,
-#      W_hq, b_q] = params
-#     (H, C) = state
-#     outputs = []
-#     for X in inputs:
-#         I = torch.sigmoid((X @ W_xi) + (H @ W_hi) + b_i)
-#         F = torch.sigmoid((X @ W_xf) + (H @ W_hf) + b_f)
-#         O = torch.sigmoid((X @ W_xo) + (H @ W_ho) + b_o)
-#         C_tilda = torch.tanh((X @ W_xc) + (H @ W_hc) + b_c)
-#         C = F * C + I * C_tilda
-#         H = O * torch.tanh(C)
-#         Y = (H @ W_hq) + b_q
-#         outputs.append(Y)
-#     return torch.cat(outputs, dim=0), (H, C)
-#
-#
-#
-# batch_size, num_steps = 32, 28
-# train_iter, vocab = d2l.load_data_time_machine(batch_size, num_steps)
-#
-# vocab_size, num_hiddens, device = len(vocab), 256, d2l.try_gpu()
-# num_epochs, lr = 100, 1
-# model = d2l.RNNModelScratch(len(vocab), num_hiddens,
-#                             init_state=init_lstm_state,
-#                             get_params= get_lstm_params,
-#                              forward_fn=lstm)
-# model =LSTM(input_size=vocab_size, hidden_size=num_hiddens,
-#             num_layers=2, output_size=vocab_size).to(d2l.try_gpu())
-# d2l.train_ch8(net=model, lr=lr,
-#               num_epochs=num_epochs,
-#               device=device,
-#               train_iter=train_iter,
-#               vocab=vocab,
-#               figure_name='LSTM_1.png')
-#
-
 import torch
 
+from tqdm import tqdm
 class LSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size):
 
@@ -120,6 +56,7 @@ def predict(prefix, num_preds, net, vocab, device):
 iter_num=0
 loss_all=[]
 for epoch in range(epochs):
+    #tqdm = tqdm(train_iter, total=len(train_iter), position=0, leave=True,desc=f'Epoch {epoch+1}/{epochs},Loss: {loss.item()}')
     for batch in train_iter:
         inputs, targets = batch
         inputs=inputs.float().to(d2l.try_gpu())
@@ -132,9 +69,9 @@ for epoch in range(epochs):
         iter_num+=1
         if iter_num%100 == 0:
             loss_all.append(loss.item())
-            print(predict('time ',100,model,vocab,device=d2l.try_gpu()))
-            print(f'Epoch {epoch+1}/{epochs}.. ')
-            print(f'Loss: {loss.item()}')
+    print(f'Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}')
+    print(predict('time ',100,model,vocab,device=d2l.try_gpu()))
+
 
 plt.plot(loss_all, label='loss', color='blue', alpha=0.5)
 plt.show()
