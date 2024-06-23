@@ -3,6 +3,7 @@ from torch import nn
 from d2l import torch as d2l
 import encoder_decoder
 import seq2seq
+import Muliti_head_attention
 class AttentionDecoder(encoder_decoder.Decoder):
     """带有注意力机制解码器的基本接口"""
     def __init__(self, **kwargs):
@@ -18,8 +19,12 @@ class Seq2SeqAttentionDecoder(AttentionDecoder):
         super(Seq2SeqAttentionDecoder, self).__init__(**kwargs)
         # self.attention = d2l.AdditiveAttention(
         #     num_hiddens, dropout)
-        self.attention = d2l.DotProductAttention(
-            dropout=dropout)
+        # self.attention = d2l.DotProductAttention(
+        #     dropout=dropout)
+        self.attention = Muliti_head_attention.MultiHeadAttention(num_hiddens,
+                                                                  num_heads=32,
+                                                                  dropout=dropout
+                                                                  )
         self.embedding = nn.Embedding(vocab_size, embed_size)
         self.rnn = nn.GRU(
             embed_size + num_hiddens, num_hiddens, num_layers,
@@ -52,7 +57,7 @@ class Seq2SeqAttentionDecoder(AttentionDecoder):
             # 将x变形为(1,batch_size,embed_size+num_hiddens)
             out, hidden_state = self.rnn(x.permute(1, 0, 2), hidden_state)
             outputs.append(out)
-            self._attention_weights.append(self.attention.attention_weights)
+            # self._attention_weights.append(self.attention.attention_weights)
         # 全连接层变换后，outputs的形状为
         # (num_steps,batch_size,vocab_size)
         outputs = self.dense(torch.cat(outputs, dim=0))
@@ -63,7 +68,7 @@ class Seq2SeqAttentionDecoder(AttentionDecoder):
         return self._attention_weights
 
 
-embed_size, num_hiddens, num_layers, dropout = 201, 32, 2, 0.1
+embed_size, num_hiddens, num_layers, dropout = 201, 32, 2, 0.05
 batch_size, num_steps = 64, 10
 lr, num_epochs, device = 0.005, 250, d2l.try_gpu()
 

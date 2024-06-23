@@ -5,17 +5,25 @@
 > [latex公式编辑](https://blog.csdn.net/NSJim/article/details/109045914)
 
 ## 1.1 数据结构
+
 ### 1.1.1 NLP数据集前置知识
->[词嵌入基础知识](https://blog.csdn.net/raelum/article/details/125462028?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522171878239116800222817961%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=171878239116800222817961&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_positive~default-1-125462028-null-null.142^v100^pc_search_result_base8&utm_term=nn.Embedding&spm=1018.2226.3001.4187)
+
+> [词嵌入基础知识](https://blog.csdn.net/raelum/article/details/125462028?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522171878239116800222817961%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=171878239116800222817961&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_positive~default-1-125462028-null-null.142^v100^pc_search_result_base8&utm_term=nn.Embedding&spm=1018.2226.3001.4187)
 
 #### 一. 语料库（Corpus）
- NLP任务所依赖的语言数据称为语料库。
+
+NLP任务所依赖的语言数据称为语料库。
+
 #### 二. 词元（Token）
+
 假设语料库只有三个英文句子并且均已经过处理（全部小写+去掉标点符号）,示例如下：
+
 ```python
 corpus = ["he is an old worker", "english is a useful tool", "the cinema is far away"]
 ```
+
 往往需要将其词元化（tokenize）以成为一个序列，这里只需要简单的`split`即可：
+
 ```python
 def tokenize(corpus):
     return [sentence.split() for sentence in corpus]
@@ -23,9 +31,11 @@ tokens = tokenize(corpus)
 print(tokens)
 # [['he', 'is', 'an', 'old', 'worker'], ['english', 'is', 'a', 'useful', 'tool'], ['the', 'cinema', 'is', 'far', 'away']]
 ```
+
 #### 三.词表（Vocabulary）
 
 词表为不重复地包含语料库中的所有词元,其用于将字符串类型的词元映射到从0开始的数字索引中。 此外语料库中不存在或已删除的任何词元都将映射到一个特定的未知词元`<unk>`。并且可以选择增加一个列表，用于保存那些被保留的词元， 例如：填充词元`<pad>`； 序列开始词元`<bos>`； 序列结束词元`<eos>`。
+
 ```python
 import  collections
 class Vocab:  #@save
@@ -80,10 +90,13 @@ def count_corpus(tokens):  #@save
 ```
 
 #### 四.词嵌入(Embedding)
+
 embedding的作用就像一个查找表（Lookup Table）一样，通过这些索引在`weight`中查找并返回相应的词向量,其基础参数如下:
+
 ```python
 nn.Embedding(num_embeddings,embedding_dim)
 ```
+
 其中,`num_embeddings`是词表的**长度**,即`len(Vocab)`;`embedding_dim`是人为给定的词向量映射维度。
 
 ### 1.1.2 输入输出的表示
@@ -110,11 +123,12 @@ nn.Embedding(num_embeddings,embedding_dim)
 
 ![20210304161641917.png](figure/20210304161641917.png)
 
-
 ## 1.2循环神经网络
+
 ### 1.2.1 RNN模块
+
 > [Pytorch中RNN Layer的使用](https://blog.csdn.net/weixin_45727931/article/details/114369073)
-> 
+
 Pytorch中RNN模块函数为`torch.nn.RNN(input_size,hidden_size,num_layers,batch_first)`,其中：
 
 * `input_size`：输入数据的编码维度。
@@ -160,13 +174,18 @@ $$
 如果遗忘门$ F_t $始终为1且输入门$ I_t $始终为0,则过去的记忆元$ C_{t-1} $将随时间被保存并传递到当前时间步。
 
 ![figure/QQ20240618-224445.png](figure/QQ20240618-224445.png)
+
 #### 四.隐状态
+
 LSTM的隐状态$ H_t\in{R^{n\times{h}}} $ 定义如下:
+
 $$
 H_t=O_t \odot{tanh(C_t)}
 $$
+
 当输出门$O_t$接近1，LSTM就能够有效地将所有记忆信息传递给预测部分，而当输出门$O_t$接近0，LSTM只保留记忆元内的所有信息，而不需要更新隐状态。
 ![figure/QQ20240618-225135.png](figure/QQ20240618-225135.png)
+
 ```python
 class LSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size):
@@ -201,13 +220,24 @@ class LSTM(nn.Module):
 ```
 
 lstm训练300epoch总计时长101.7s,
+
 ## 2 Attention注意力机制
+
+注意力机制的提出是为了解决如何**体现多个词token组合后的整体语义**。
+![figure/QQ20240623-154832.png](figure/QQ20240623-154832.png)
+
+* 为什么$ Q\dot{K_T} $后要除以$ \sqrt{D_{out}} $:
+  ![figure/QQ20240623-155833.png](figure/QQ20240623-155833.png)
+  在数学的角度上,假设Q,K矩阵的数据均为标准正态分布$ N~(0,I) $,通过推导，Q,K直接相乘后的矩阵数据分布为$ N~(0,D_{out}\dot{I}) $,过于分散的数据通过softmax计算后其输出通常接近0或者1,所以在进行softmax之前，先将注意力评分矩阵进行缩放处理后，每个数据点映射为满足$ N~(0,I) $分布的数据后，再进行softmax计算。
+
 ### 2.1嵌入Attention的seq2seq(Bahdanau注意力)
+
 * Attention的key和value为**seq2seq编码器所有token_embedding的输出**。
 * Attention的query为**seq2seq解码器RNN上一个时序token_embedding的输出**。
 * Attention的输出和下一个token嵌入拼接后,输入下一轮的**Decoder_RNN**。
 * 注意力机制可以**根据Decoder_RNN的输出来匹配到合适的Encoder_RNN的输出**来更有效传递信息。
 * ![figure/QQ20240623-095539.png](figure/QQ20240623-095539.png)
+
 ```python
 class Seq2SeqAttentionDecoder(AttentionDecoder):
     def __init__(self, vocab_size, embed_size, num_hiddens, num_layers,
