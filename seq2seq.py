@@ -45,7 +45,7 @@ class Seq2SeqDecoder(encoder_decoder.Decoder):
 
         X_and_context = torch.cat((X, context), 2)
         output, state = self.decoder(X_and_context, state)
-        output = self.dense(output)
+        output = self.dense(output).permute(1, 0, 2)
         return output, state
 #@save
 # #@save
@@ -111,7 +111,7 @@ def train_seq2seq(net, data_iter, lr, num_epochs, tgt_vocab, device):
         print(f'loss {metric[0] / metric[1]:.3f}, {metric[1] / timer.stop():.1f} '
               f'tokens/sec on {str(device)}')
     d2l.plt.show()
-    torch.save(net.state_dict(), f'weight/seq2seq_300ep_{time.time()}.pt')
+    #torch.save(net.state_dict(), f'weight/seq2seq_300ep_{time.time()}.pt')
 
     # print(predict_seq2seq(net, 'who are you', src_vocab, tgt_vocab, num_steps=num_steps, device=device))
 def predict_seq2seq(net, src_sentence, src_vocab, tgt_vocab, num_steps,
@@ -177,34 +177,34 @@ def predict_seq2seq(net, src_sentence, src_vocab, tgt_vocab, num_steps,
 #
 # X = torch.tensor([[1, 2, 3], [4, 5, 6]])
 # sequence_mask(X, torch.tensor([1, 2]))
-def bleu(pred_seq, label_seq, k):  #@save
-    """计算BLEU"""
-    pred_tokens, label_tokens = pred_seq.split(' '), label_seq.split(' ')
-    len_pred, len_label = len(pred_tokens), len(label_tokens)
-    score = math.exp(min(0, 1 - len_label / len_pred))
-    for n in range(1, k + 1):
-        num_matches, label_subs = 0, collections.defaultdict(int)
-        for i in range(len_label - n + 1):
-            label_subs[' '.join(label_tokens[i: i + n])] += 1
-        for i in range(len_pred - n + 1):
-            if label_subs[' '.join(pred_tokens[i: i + n])] > 0:
-                num_matches += 1
-                label_subs[' '.join(pred_tokens[i: i + n])] -= 1
-        score *= math.pow(num_matches / (len_pred - n + 1), math.pow(0.5, n))
-    return score
-# embed_size, num_hiddens, num_layers, dropout = 32, 32, 2, 0.05
+# def bleu(pred_seq, label_seq, k):  #@save
+#     """计算BLEU"""
+#     pred_tokens, label_tokens = pred_seq.split(' '), label_seq.split(' ')
+#     len_pred, len_label = len(pred_tokens), len(label_tokens)
+#     score = math.exp(min(0, 1 - len_label / len_pred))
+#     for n in range(1, k + 1):
+#         num_matches, label_subs = 0, collections.defaultdict(int)
+#         for i in range(len_label - n + 1):
+#             label_subs[' '.join(label_tokens[i: i + n])] += 1
+#         for i in range(len_pred - n + 1):
+#             if label_subs[' '.join(pred_tokens[i: i + n])] > 0:
+#                 num_matches += 1
+#                 label_subs[' '.join(pred_tokens[i: i + n])] -= 1
+#         score *= math.pow(num_matches / (len_pred - n + 1), math.pow(0.5, n))
+#     return score
+# embed_size, num_hiddens, num_layers, dropout = 3, 32, 2, 0.1
 # batch_size, num_steps = 64, 10
-# lr, num_epochs, device = 0.005, 300, d2l.try_gpu()
+# lr, num_epochs, device = 0.005, 250, d2l.try_gpu()
 # train_iter, src_vocab, tgt_vocab = d2l.load_data_nmt(batch_size, num_steps)
 # encoder = Seq2SeqEncoder(len(src_vocab), embed_size, num_hiddens, num_layers,
 #                         dropout=dropout)
 # decoder = Seq2SeqDecoder(len(tgt_vocab), embed_size, num_hiddens, num_layers,
 #                         dropout)
 # net = d2l.EncoderDecoder(encoder, decoder)
-# net.load_state_dict(torch.load(f'weight/seq2seq_300ep_1718950276.3611968.pt'), strict=False)
+# # net.load_state_dict(torch.load(f'weight/seq2seq_300ep_1718950276.3611968.pt'), strict=False)
 # net.to(device)
-# #train_seq2seq(net, train_iter, lr, num_epochs, tgt_vocab, device)
-#
+# train_seq2seq(net, train_iter, lr, num_epochs, tgt_vocab, device)
+
 # engs = ['go .', "i lost .", 'he\'s calm .', 'i\'m home .']
 # fras = ['va !', 'j\'ai perdu .', 'il est calme .', 'je suis chez moi .']
 # for eng, fra in zip(engs, fras):

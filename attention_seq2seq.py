@@ -16,8 +16,10 @@ class Seq2SeqAttentionDecoder(AttentionDecoder):
     def __init__(self, vocab_size, embed_size, num_hiddens, num_layers,
                  dropout=0, **kwargs):
         super(Seq2SeqAttentionDecoder, self).__init__(**kwargs)
-        self.attention = d2l.AdditiveAttention(
-            num_hiddens, dropout)
+        # self.attention = d2l.AdditiveAttention(
+        #     num_hiddens, dropout)
+        self.attention = d2l.DotProductAttention(
+            dropout=dropout)
         self.embedding = nn.Embedding(vocab_size, embed_size)
         self.rnn = nn.GRU(
             embed_size + num_hiddens, num_hiddens, num_layers,
@@ -40,8 +42,11 @@ class Seq2SeqAttentionDecoder(AttentionDecoder):
             # query的形状为(batch_size,1,num_hiddens)
             query = torch.unsqueeze(hidden_state[-1], dim=1)
             # context的形状为(batch_size,1,num_hiddens)
-            context = self.attention(
-                query, enc_outputs, enc_outputs, enc_valid_lens)
+            #AdditiveAttention
+            # context = self.attention(
+            #     query, enc_outputs, enc_outputs, enc_valid_lens)
+            #DotproductAttention
+            context = self.attention(query,enc_outputs,enc_outputs,enc_valid_lens)
             # 在特征维度上连结
             x = torch.cat((context, torch.unsqueeze(x, dim=1)), dim=-1)
             # 将x变形为(1,batch_size,embed_size+num_hiddens)
@@ -58,7 +63,7 @@ class Seq2SeqAttentionDecoder(AttentionDecoder):
         return self._attention_weights
 
 
-embed_size, num_hiddens, num_layers, dropout = 3, 32, 2, 0.1
+embed_size, num_hiddens, num_layers, dropout = 201, 32, 2, 0.1
 batch_size, num_steps = 64, 10
 lr, num_epochs, device = 0.005, 250, d2l.try_gpu()
 
@@ -68,12 +73,12 @@ encoder = seq2seq.Seq2SeqEncoder(
 decoder = Seq2SeqAttentionDecoder(
     len(tgt_vocab), embed_size, num_hiddens, num_layers, dropout)
 net = encoder_decoder.EncoderDecoder(encoder, decoder).to(device)
-net.load_state_dict(torch.load('/home/zzq/Desktop/seq_model/weight/seq2seq_300ep_1719106065.1140518.pt'),strict=False)
-# seq2seq.train_seq2seq(net, train_iter,lr, num_epochs,tgt_vocab,device)
-engs = ['go .', "i lost .", 'he\'s calm .', 'i\'m home .']
-fras = ['va !', 'j\'ai perdu .', 'il est calme .', 'je suis chez moi .']
-for eng, fra in zip(engs, fras):
-    translation, attention_weight_seq = seq2seq.predict_seq2seq(
-        net, eng, src_vocab, tgt_vocab, num_steps, device)
-    print(f'{eng} => {translation}, bleu {seq2seq.bleu(translation, fra, k=2):.3f}')
-
+#net.load_state_dict(torch.load('/home/zzq/Desktop/seq_model/weight/seq2seq_300ep_1719106065.1140518.pt'),strict=False)
+seq2seq.train_seq2seq(net, train_iter,lr, num_epochs,tgt_vocab,device)
+# engs = ['go .', "i lost .", 'he\'s calm .', 'i\'m home .']
+# fras = ['va !', 'j\'ai perdu .', 'il est calme .', 'je suis chez moi .']
+# for eng, fra in zip(engs, fras):
+#     translation, attention_weight_seq = seq2seq.predict_seq2seq(
+#         net, eng, src_vocab, tgt_vocab, num_steps, device)
+#     print(f'{eng} => {translation}, bleu {seq2seq.bleu(translation, fra, k=2):.3f}')
+#

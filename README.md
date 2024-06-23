@@ -90,7 +90,7 @@ nn.Embedding(num_embeddings,embedding_dim)
 
 #### 一.输入表示形式
 
-输入如下图所示，输入主要有向量$ x $,初始的$ h_0 $。其中`x:[seq_len, batch, input_size]`,`h0:[num_layers, batch,hidden_size]`。
+输入如下图所示，输入主要有向量$ x $ ,初始的 $ h_0 $。其中`x:[seq_len, batch, input_size]`,`h0:[num_layers, batch,hidden_size]`。
 
 * `seq_len`:输入序列的长度，即有多少个$ x_i $,在语言预测的任务下，即代表每批量的子序列有多长。
 * `batch`  ：小批量大小。
@@ -151,7 +151,7 @@ $$
 #### 三. 记忆单元
 
 在LSTM中,运用两个门用于控制序列的输入和遗忘（或跳过）:其中输入门$I_t$控制采用多少来自
-$ \widetilde{C}_t$的新数据，而遗忘门$ F_t$制保留多少过去的记忆元$C_{t-1}\in R^{n\times{h}}$的内容,其数学定义如下:
+$ \widetilde{C}_t $的新数据，而遗忘门$ F_t$制保留多少过去的记忆元$C_{t-1}\in R^{n\times{h}}$的内容,其数学定义如下:
 
 $$
 C_t=F_t \odot{C_{t-1}}+I_t \odot{\widetilde{C}_t}
@@ -202,8 +202,54 @@ class LSTM(nn.Module):
 
 lstm训练300epoch总计时长101.7s,
 ## 2 Attention注意力机制
-### 2.1使用Attention的seq2seq网络
+### 2.1嵌入Attention的seq2seq(Bahdanau注意力)
 * Attention的key和value为**seq2seq编码器所有token_embedding的输出**。
 * Attention的query为**seq2seq解码器RNN上一个时序token_embedding的输出**。
 * Attention的输出和下一个token嵌入拼接后,输入下一轮的**Decoder_RNN**。
-![figure/QQ20240623-095539.png](figure/QQ20240623-095539.png)
+* 注意力机制可以**根据Decoder_RNN的输出来匹配到合适的Encoder_RNN的输出**来更有效传递信息。
+* ![figure/QQ20240623-095539.png](figure/QQ20240623-095539.png)
+```python
+class Seq2SeqAttentionDecoder(AttentionDecoder):
+    def __init__(self, vocab_size, embed_size, num_hiddens, num_layers,
+                 dropout=0, **kwargs):
+        super(Seq2SeqAttentionDecoder, self).__init__(**kwargs)
+        self.attention = d2l.AdditiveAttention(
+            num_hiddens, dropout)
+        self.embedding = nn.Embedding(vocab_size, embed_size)
+        self.rnn = nn.GRU(
+            embed_size + num_hiddens, num_hiddens, num_layers,
+            dropout=dropout)
+        self.dense = nn.Linear(num_hiddens, vocab_size)
+    # outputs的形状为(batch_size，num_steps，num_hiddens).
+    # hidden_state的形状为(num_layers，batch_size，num_hiddens)
+    def init_state(self, enc_outputs, enc_valid_lens, *args):
+        outputs, hidden_state = enc_outputs
+        return (outputs.permute(1, 0, 2), hidden_state, enc_valid_lens)
+    def forward(self, X, state):
+        # enc_outputs的形状为(batch_size,num_steps,num_hiddens).
+        # hidden_state的形状为(num_layers,batch_size, num_hiddens)
+        enc_outputs, hidden_state, enc_valid_lens = state
+        # 输出X的形状为(num_steps,batch_size,embed_size)
+        X = self.embedding(X).permute(1, 0, 2)
+        outputs, self._attention_weights = [], []
+        for x in X:
+            # query的形状为(batch_size,1,num_hiddens)
+            query = torch.unsqueeze(hidden_state[-1], dim=1)
+            # context的形状为(batch_size,1,num_hiddens)
+            context = self.attention(
+                query, enc_outputs, enc_outputs, enc_valid_lens)
+            # 在特征维度上连结
+            x = torch.cat((context, torch.unsqueeze(x, dim=1)), dim=-1)
+            # 将x变形为(1,batch_size,embed_size+num_hiddens)
+            out, hidden_state = self.rnn(x.permute(1, 0, 2), hidden_state)
+            outputs.append(out)
+            self._attention_weights.append(self.attention.attention_weights)
+        # 全连接层变换后，outputs的形状为
+        # (num_steps,batch_size,vocab_size)
+        outputs = self.dense(torch.cat(outputs, dim=0))
+        return outputs.permute(1, 0, 2), [enc_outputs, hidden_state,
+                                          enc_valid_lens]
+    @property
+    def attention_weights(self):
+        return self._attention_weights
+```
