@@ -79,11 +79,18 @@ def count_corpus(tokens):  #@save
     return collections.Counter(tokens)
 ```
 
+#### 四.词嵌入(Embedding)
+embedding的作用就像一个查找表（Lookup Table）一样，通过这些索引在`weight`中查找并返回相应的词向量,其基础参数如下:
+```python
+nn.Embedding(num_embeddings,embedding_dim)
+```
+其中,`num_embeddings`是词表的**长度**,即`len(Vocab)`;`embedding_dim`是人为给定的词向量映射维度。
+
 ### 1.1.2 输入输出的表示
 
 #### 一.输入表示形式
 
-输入如下图所示，输入主要有向量$x$,初始的$ h_0 $。其中`x:[seq_len, batch, input_size]`,`h0:[num_layers, batch,hidden_size]`。
+输入如下图所示，输入主要有向量$ x $,初始的$ h_0 $。其中`x:[seq_len, batch, input_size]`,`h0:[num_layers, batch,hidden_size]`。
 
 * `seq_len`:输入序列的长度，即有多少个$ x_i $,在语言预测的任务下，即代表每批量的子序列有多长。
 * `batch`  ：小批量大小。
@@ -95,7 +102,7 @@ def count_corpus(tokens):  #@save
 
 #### 二.输出表示
 
-输出如下图所示,可以由$ Y $向量或者最后一个时刻隐含层的输出$ h_t $,，如果输出是$ Y $向量,则Ｙ的结构为`out:[seq_len, batch, hidden_size]`。
+输出如下图所示,可以由$ Y $向量或者最后一个时刻隐含层的输出 $ h_t $，如果输出是 $ Y $向量,则 $ Y $ 的结构为`out:[seq_len, batch, hidden_size]`。
 
 ![20210304161446264.png](figure/20210304161446264.png)
 
@@ -144,17 +151,17 @@ $$
 #### 三. 记忆单元
 
 在LSTM中,运用两个门用于控制序列的输入和遗忘（或跳过）:其中输入门$I_t$控制采用多少来自
-$ \widetilde{C}_t$的新数据，而遗忘门$F_t$制保留多少过去的记忆元$C_{t-1}\in R^{n\times{h}}$的内容,其数学定义如下:
+$ \widetilde{C}_t$的新数据，而遗忘门$ F_t$制保留多少过去的记忆元$C_{t-1}\in R^{n\times{h}}$的内容,其数学定义如下:
 
 $$
 C_t=F_t \odot{C_{t-1}}+I_t \odot{\widetilde{C}_t}
 $$
 
-如果遗忘门$F_t$始终为1且输入门$I_t$始终为0,则过去的记忆元C_{t-1}将随时间被保存并传递到当前时间步。
+如果遗忘门$ F_t $始终为1且输入门$ I_t $始终为0,则过去的记忆元$ C_{t-1} $将随时间被保存并传递到当前时间步。
 
 ![figure/QQ20240618-224445.png](figure/QQ20240618-224445.png)
 #### 四.隐状态
-LSTM的隐状态$H_t\in{R^{n\times{h}}}$ 定义如下:
+LSTM的隐状态$ H_t\in{R^{n\times{h}}} $ 定义如下:
 $$
 H_t=O_t \odot{tanh(C_t)}
 $$
@@ -194,3 +201,9 @@ class LSTM(nn.Module):
 ```
 
 lstm训练300epoch总计时长101.7s,
+## 2 Attention注意力机制
+### 2.1使用Attention的seq2seq网络
+* Attention的key和value为**seq2seq编码器所有token_embedding的输出**。
+* Attention的query为**seq2seq解码器RNN上一个时序token_embedding的输出**。
+* Attention的输出和下一个token嵌入拼接后,输入下一轮的**Decoder_RNN**。
+![figure/QQ20240623-095539.png](figure/QQ20240623-095539.png)
