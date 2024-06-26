@@ -3,7 +3,9 @@ from torch import nn
 from d2l import torch as d2l
 import encoder_decoder
 import seq2seq
-import Muliti_head_attention
+from transformer_Net import Muliti_head_attention, transformer
+
+
 class AttentionDecoder(encoder_decoder.Decoder):
     """带有注意力机制解码器的基本接口"""
     def __init__(self, **kwargs):
@@ -71,22 +73,47 @@ class Seq2SeqAttentionDecoder(AttentionDecoder):
         return self._attention_weights
 
 
+
+
+
+
+
+
 embed_size, num_hiddens, num_layers, dropout = 201, 32, 2, 0.05
+ffn_num_input, ffn_num_hiddens, num_heads = 32, 64, 4
+norm_shape = [32]
 batch_size, num_steps = 64, 10
 lr, num_epochs, device = 0.005, 250, d2l.try_gpu()
-
 train_iter, src_vocab, tgt_vocab = d2l.load_data_nmt(batch_size, num_steps)
+# encoder = transformer.Transformer_Encoder(
+#     vocab_size=len(src_vocab), query_size=num_hiddens,
+#     key_size=num_hiddens, value_size=num_hiddens,
+#     norm_shape=norm_shape,num_heads=num_heads,
+#     num_layers=num_layers,ffn_num_input=ffn_num_input,
+#     ffn_num_hiddens=ffn_num_hiddens,dropout=dropout,
+#     num_hiddens=num_hiddens
+# )
+# decoder = transformer.Transformer_Decoder(
+#     vocab_size=len(tgt_vocab), query_size=num_hiddens,
+#     key_size=num_hiddens, value_size=num_hiddens,
+#     norm_shape=norm_shape,num_heads=num_heads,
+#     num_layers=num_layers,ffn_num_input=ffn_num_input,
+#     ffn_num_hiddens=ffn_num_hiddens,dropout=dropout,
+#     num_hiddens=num_hiddens
+# )
 encoder = seq2seq.Seq2SeqEncoder(
     len(src_vocab), embed_size, num_hiddens, num_layers, dropout)
 decoder = Seq2SeqAttentionDecoder(
     len(tgt_vocab), embed_size, num_hiddens, num_layers, dropout)
 net = encoder_decoder.EncoderDecoder(encoder, decoder).to(device)
-#net.load_state_dict(torch.load('/home/zzq/Desktop/seq_model/weight/seq2seq_300ep_1719106065.1140518.pt'),strict=False)
+
+# net.load_state_dict(torch.load('/home/zzq/Desktop/seq_model/weight/Bahdanau_250ep_1719380658.8607135.pt'),strict=False)
 seq2seq.train_seq2seq(net, train_iter,lr, num_epochs,tgt_vocab,device)
-# engs = ['go .', "i lost .", 'he\'s calm .', 'i\'m home .']
-# fras = ['va !', 'j\'ai perdu .', 'il est calme .', 'je suis chez moi .']
-# for eng, fra in zip(engs, fras):
-#     translation, attention_weight_seq = seq2seq.predict_seq2seq(
-#         net, eng, src_vocab, tgt_vocab, num_steps, device)
-#     print(f'{eng} => {translation}, bleu {seq2seq.bleu(translation, fra, k=2):.3f}')
-#
+# seq2seq.predict_seq2seq(net,)
+engs = ['go .', "i lost .", 'he\'s calm .', 'i\'m home .']
+fras = ['va !', 'j\'ai perdu .', 'il est calme .', 'je suis chez moi .']
+for eng, fra in zip(engs, fras):
+    translation, attention_weight_seq = seq2seq.predict_seq2seq(
+        net, eng, src_vocab, tgt_vocab, num_steps, device)
+    print(f'{eng} => {translation}, bleu {seq2seq.bleu(translation, fra, k=2):.3f}')
+
