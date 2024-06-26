@@ -26,15 +26,15 @@ def transpose_output(X, num_heads):
     return X.reshape(X.shape[0], X.shape[1], -1)
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self,num_hiddens,
+    def __init__(self,qurey_size,key_size,value_size,num_hidden,
                  num_heads, dropout, bias=False, **kwargs):
         super(MultiHeadAttention, self).__init__(**kwargs)
         self.num_heads = num_heads
         self.attention = d2l.DotProductAttention(dropout)
-        self.W_q =nn.LazyLinear(num_hiddens, bias=False)
-        self.W_k =nn.LazyLinear(num_hiddens, bias=False)
-        self.W_v =nn.LazyLinear(num_hiddens, bias=False)
-        self.W_o = nn.Linear(num_hiddens, num_hiddens, bias=bias)
+        self.W_q =nn.LazyLinear(qurey_size, bias=False)
+        self.W_k =nn.LazyLinear(key_size, bias=False)
+        self.W_v =nn.LazyLinear(value_size, bias=False)
+        self.W_o = nn.Linear(num_hidden, num_hidden, bias=bias)
 
     def forward(self, query, key, value,valid_lens):
         # queries，keys，values的形状:

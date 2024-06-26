@@ -21,7 +21,10 @@ class Seq2SeqAttentionDecoder(AttentionDecoder):
         #     num_hiddens, dropout)
         # self.attention = d2l.DotProductAttention(
         #     dropout=dropout)
-        self.attention = Muliti_head_attention.MultiHeadAttention(num_hiddens,
+        self.attention = Muliti_head_attention.MultiHeadAttention(qurey_size=num_hiddens,
+                                                                  key_size=num_hiddens,
+                                                                  value_size=num_hiddens,
+                                                                  num_hidden=num_hiddens,
                                                                   num_heads=32,
                                                                   dropout=dropout
                                                                   )
