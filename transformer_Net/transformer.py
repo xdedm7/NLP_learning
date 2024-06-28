@@ -2,7 +2,6 @@ from torch import nn
 from transformer_Net import position_encoding, Muliti_head_attention
 import torch
 import math
-
 #@save FFN
 class PositionWiseFFN(nn.Module):
     """基于位置的前馈网络"""
